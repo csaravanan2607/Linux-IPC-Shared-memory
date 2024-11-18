@@ -1,10 +1,10 @@
 # Linux-IPC-Shared-memory
-# Ex - 6
+# Ex06-Linux IPC-Shared-memory
 
-# AIM :
+# AIM:
 To Write a C program that illustrates two processes communicating using shared memory.
 
-# DESIGN STEPS :
+# DESIGN STEPS:
 
 ### Step 1:
 
@@ -18,69 +18,141 @@ Write the C Program using Linux Process API - Shared Memory
 
 Execute the C Program for the desired output. 
 
-# PROGRAM :
+# PROGRAM:
 
 ## Write a C program that illustrates two processes communicating using shared memory.
-
 ```
+shmry1.c
 
-#include <stdio.h>
-#include <sys/ipc.h>
+#include <unistd.h> 
+#include <stdlib.h> 
+#include <stdio.h> 
+#include <string.h> 
 #include <sys/shm.h>
+#include <stdint.h>  // For uintptr_t
 
-int main()
-{
-	// Generate a unique key using ftok
-	key_t key = ftok("shmfile", 65);
+#define TEXT_SZ 2048 
 
-	// Get an identifier for the shared memory segment using shmget
-	int shmid = shmget(key, 1024, 0666 | IPC_CREAT);
-      printf("Shared memory id = %d \n",shmid);
-// Attach to the shared memory segment using shmat
-	char* str = (char*)shmat(shmid, (void*)0, 0);
-	
-    printf("Write Data : ");
-	fgets(str, 1024, stdin);
+struct shared_use_st {
+    int written_by_you;
+    char some_text[TEXT_SZ];
+};
 
-	printf("Data written in memory: %s\n", str);
+int main() {
+    int running = 1;
+    void *shared_memory = (void *)0; 
+    struct shared_use_st *shared_stuff; 
+    int shmid;
+    
+    srand((unsigned int)getpid()); 
 
-	// Detach from the shared memory segment using shmdt
-	shmdt(str);
+    // Create shared memory
+    shmid = shmget((key_t)1234, sizeof(struct shared_use_st), 0666 | IPC_CREAT);
+    printf("Shared memory id is %d \n", shmid);
 
-	return 0;
-}#include <stdio.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
+    if (shmid == -1) {
+        fprintf(stderr, "shmget failed\n");
+        exit(EXIT_FAILURE);
+    }
 
-int main()
-{
-	// Generate a unique key using ftok
-	key_t key = ftok("shmfile", 65);
+    // Attach the shared memory
+    shared_memory = shmat(shmid, (void *)0, 0);
+    if (shared_memory == (void *)-1) {
+        fprintf(stderr, "shmat failed\n");
+        exit(EXIT_FAILURE);
+    }
 
-	// Get an identifier for the shared memory segment using shmget
-	int shmid = shmget(key, 1024, 0666 | IPC_CREAT);
-      printf("Shared memory id = %d \n",shmid);
-// Attach to the shared memory segment using shmat
-	char* str = (char*)shmat(shmid, (void*)0, 0);
-	
-    printf("Write Data : ");
-	fgets(str, 1024, stdin);
+    // Print address of the shared memory safely using %p or uintptr_t
+    printf("Memory Attached at %p\n", shared_memory);
+    // Alternatively, use uintptr_t for printing as a number:
+    // printf("Memory Attached at %lx\n", (unsigned long)(uintptr_t)shared_memory);
 
-	printf("Data written in memory: %s\n", str);
+    shared_stuff = (struct shared_use_st *)shared_memory;
+    shared_stuff->written_by_you = 0;
 
-	// Detach from the shared memory segment using shmdt
-	shmdt(str);
+    while (running) {
+        if (shared_stuff->written_by_you) {
+            printf("You Wrote: %s", shared_stuff->some_text);
+            sleep(rand() % 4);  // Random sleep between 0 to 3 seconds
+            shared_stuff->written_by_you = 0;
 
-	return 0;
+            if (strncmp(shared_stuff->some_text, "end", 3) == 0) {
+                running = 0;
+            }
+        }
+    }
+
+    // Detach from shared memory
+    if (shmdt(shared_memory) == -1) {
+        fprintf(stderr, "shmdt failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Remove shared memory
+    if (shmctl(shmid, IPC_RMID, 0) == -1) {
+        fprintf(stderr, "failed to delete shared memory\n");
+        exit(EXIT_FAILURE);
+    }
+
+    exit(EXIT_SUCCESS);
 }
+
+shmry2.c
+
+#include<unistd.h> 
+#include<stdlib.h> 
+#include<stdio.h> 
+#include<string.h>
+#include<sys/shm.h>
+#define TEXT_SZ 2048 
+struct shared_use_st{
+int written_by_you;
+char some_text[TEXT_SZ];
+};
+int main()
+{
+int running =1;
+void *shared_memory = (void *)0; 
+struct shared_use_st *shared_stuff; 
+char buffer[BUFSIZ];
+int shmid;
+shmid	=shmget(	(key_t)1234,	sizeof(struct shared_use_st), 0666 | IPC_CREAT);
+printf("Shared memory id = %d \n",shmid);
+if (shmid == -1)
+{
+fprintf(stderr, "shmget failed\n"); exit(EXIT_FAILURE);
+}
+shared_memory=shmat(shmid, (void *)0, 0);
+if (shared_memory == (void *)-1){
+fprintf(stderr,	"shmat	failed\n"); exit(EXIT_FAILURE);}
+printf("Memory Attached at %p\n",shared_memory); 
+shared_stuff = (struct shared_use_st *)shared_memory; 
+while(running)
+{
+while(shared_stuff->written_by_you== 1)
+{
+sleep(1);
+printf("waiting for client.	\n");
+}
+printf("Enter Some Text: "); fgets (buffer, BUFSIZ, stdin);
+strncpy(shared_stuff->some_text, buffer, TEXT_SZ);
+shared_stuff->written_by_you = 1;
+if(strncmp(buffer, "end", 3) == 0){
+running = 0;}}
+if (shmdt(shared_memory) == -1)
+{
+fprintf(stderr, "shmdt failed\n"); exit(EXIT_FAILURE);
+} exit(EXIT_SUCCESS);
+}
+
 ```
+## OUTPUT
+## ./shmry2.o
+![alt text](1.png)
+## ./shmry1.o
+![alt text](2.png)
+## ipcs
+![alt text](3.png)
 
-
-
-## OUTPUT :
-
-![image](https://github.com/Shilo-05/Linux-IPC-Shared-memory/assets/139841664/81641deb-e8cb-46d4-acf7-13fae1b1f499)
-
-
-# RESULT :
+# RESULT:
 The program is executed successfully.
