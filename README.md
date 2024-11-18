@@ -148,11 +148,10 @@ fprintf(stderr, "shmdt failed\n"); exit(EXIT_FAILURE);
 ```
 ## OUTPUT
 ## ./shmry2.o
-![alt text](1.png)
+![1](https://github.com/user-attachments/assets/c679bdee-1561-45d6-b0be-acc36b21af77)
 ## ./shmry1.o
-![alt text](2.png)
+![2](https://github.com/user-attachments/assets/7bc2bf12-3d58-4b5a-9a88-1a075b92ff7d)
 ## ipcs
-![alt text](3.png)
-
+![3](https://github.com/user-attachments/assets/66ea5104-5cc3-4a55-80e5-fd3e43862306)
 # RESULT:
 The program is executed successfully.
